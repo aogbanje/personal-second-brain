@@ -216,3 +216,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# === AI & Vector Database Specifics ===
+# Local Vector Databases (ChromaDB storage)
+chroma_db/
+.chroma/
+chroma.sqlite3
+
+# Local LLM weights and cache files (Hugging Face / Ollama)
+.cache/
+models/
+*.bin
+*.onnx
+
+# Data Ingestion dumps (Don't upload your private PDFs/URLs)
+data/storage/
+inputs/
+
+# Secrets (Never upload your actual API keys)
+.env
+.env.local
