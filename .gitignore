@@ -236,3 +236,9 @@ inputs/
 # Secrets (Never upload your actual API keys)
 .env
 .env.local
+
+# === Ingestion Data Sources ===
+# Block all raw testing documents and staging files
+sample_data/
+inputs/
+*.pdf
