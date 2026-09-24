@@ -1,8 +1,8 @@
-# PSB — AI-Powered Document Intelligence Platform
+# PSB (personal-second-brain) - AI-Powered Document Intelligence Platform
 
 ## What This Project Is
 
-An app that takes messy, scattered inputs — PDFs, web links, maybe raw text — and turns them into a **structured, queryable knowledge graph** you can search and chat with. Under the hood it's a RAG (Retrieval-Augmented Generation) pipeline: documents get parsed, chunked, embedded, and linked by extracted entities/relationships, so a user can ask a question in natural language and get an answer grounded in _their_ documents, with the graph showing how concepts connect across sources.
+An app that takes messy, scattered inputs - PDFs, web links, maybe raw text - and turns them into a **structured, queryable knowledge graph** you can search and chat with. Under the hood it's a RAG (Retrieval-Augmented Generation) pipeline: documents get parsed, chunked, embedded, and linked by extracted entities/relationships, so a user can ask a question in natural language and get an answer grounded in _their_ documents, with the graph showing how concepts connect across sources.
 
 Stack: **Python** (backend/AI/data pipeline) + **Next.js** (frontend/UX).
 
@@ -15,7 +15,7 @@ Stack: **Python** (backend/AI/data pipeline) + **Next.js** (frontend/UX).
 - Embedding generation → vector store
 - Entity & relationship extraction → knowledge graph store
 - Hybrid retrieval (vector similarity + keyword/BM25)
-- RAG chat interface with **source citations** (not just answers — show _where_ it came from)
+- RAG chat interface with **source citations** (not just answers - show _where_ it came from)
 - Interactive graph visualization (explore nodes/edges, click to drill into source doc)
 - Async background processing for ingestion (documents shouldn't block the UI)
 - Real-time status updates while a doc is being processed
@@ -35,14 +35,14 @@ Stack: **Python** (backend/AI/data pipeline) + **Next.js** (frontend/UX).
 
 ## Architecture Decisions to Reason Through Before You Lock In
 
-Don't treat these as solved — they shape a lot of what follows, so it's worth sitting with each one for a bit:
+Don't treat these as solved - they shape a lot of what follows, so it's worth sitting with each one for a bit:
 
-1. **Vector store** — pgvector (Postgres extension, one less service to run) vs. Qdrant/Weaviate (self-hosted, built for this) vs. Pinecone (managed, no ops). What does _your_ deployment budget and ops appetite look like?
-2. **Graph store** — Neo4j (real graph DB, Cypher queries, built-in viz tooling) vs. modeling edges relationally in Postgres vs. an in-memory networkx graph rebuilt on read. At what scale does "knowledge graph" actually need a dedicated graph engine vs. just... a table?
-3. **RAG orchestration** — raw API calls you control end-to-end vs. LangChain/LlamaIndex abstractions that save boilerplate but hide what's happening. Given you're still building instincts here, which serves your learning better _right now_?
-4. **Background jobs** — Celery (mature, heavier) vs. RQ (simpler) vs. Arq (async-native, pairs naturally with FastAPI). Since your API layer is likely async, does a sync-first queue fight that?
+1. **Vector store** - pgvector (Postgres extension, one less service to run) vs. Qdrant/Weaviate (self-hosted, built for this) vs. Pinecone (managed, no ops). What does _your_ deployment budget and ops appetite look like?
+2. **Graph store** - Neo4j (real graph DB, Cypher queries, built-in viz tooling) vs. modeling edges relationally in Postgres vs. an in-memory networkx graph rebuilt on read. At what scale does "knowledge graph" actually need a dedicated graph engine vs. just... a table?
+3. **RAG orchestration** - raw API calls you control end-to-end vs. LangChain/LlamaIndex abstractions that save boilerplate but hide what's happening. Given you're still building instincts here, which serves your learning better _right now_?
+4. **Background jobs** - Celery (mature, heavier) vs. RQ (simpler) vs. Arq (async-native, pairs naturally with FastAPI). Since your API layer is likely async, does a sync-first queue fight that?
 
-Worth sketching out your reasoning for each before writing a line of code — it'll save you a rewrite later.
+Worth sketching out your reasoning for each before writing a line of code - it'll save you a rewrite later.
 
 ---
 
@@ -155,4 +155,4 @@ psb(personal-second-brain)/
 
 ## A Note on Sequencing
 
-Ingestion → embedding → retrieval → graph → chat is roughly the dependency order — each layer needs the one before it working. Worth deciding: are you building this vertically (one document type, end-to-end, working) or horizontally (all ingestion types, then all retrieval, etc.)? Given your 20-minute-stuck rule and daily build rhythm, which of those two gets you a demoable slice fastest?
+Ingestion → embedding → retrieval → graph → chat is roughly the dependency order - each layer needs the one before it working. Worth deciding: are you building this vertically (one document type, end-to-end, working) or horizontally (all ingestion types, then all retrieval, etc.)? Given your 20-minute-stuck rule and daily build rhythm, which of those two gets you a demoable slice fastest?
