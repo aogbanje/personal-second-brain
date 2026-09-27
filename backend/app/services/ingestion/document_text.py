@@ -6,8 +6,9 @@ tested without PyMuPDF installed.
 
 from dataclasses import dataclass
 
-# Appended after every page by the PDF parser. Fixed width matters:
-# pipeline._reconstruct recovers page spans from stored text by scanning for it.
+# Appended after every page by the PDF parser, so the last word of one page
+# cannot fuse with the first word of the next. Page spans are persisted as
+# JSONB and rehydrated directly, so nothing scans the text for this.
 PAGE_SEPARATOR = "\n\n"
 
 

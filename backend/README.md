@@ -17,9 +17,14 @@ cp .env.example .env    # set ANTHROPIC_API_KEY
 
 # 4. Serve
 uvicorn app.main:app --reload
+
+# 5. Worker, in a second shell (skip it and ingestion runs in-request instead)
+arq app.workers.arq_app.WorkerSettings
 ```
 
 First boot downloads the embedding model (~130 MB) into the HuggingFace cache.
+Scanned PDFs also need `tesseract` on PATH — without it those pages extract
+nothing, but ingestion still succeeds.
 
 ## Try the slice
 
@@ -55,7 +60,7 @@ release blocker.
 | `app/services/embeddings/` | local `bge-small-en-v1.5`, no API dependency |
 | `app/services/retrieval/` | vector + full-text fused with RRF, one SQL query |
 | `app/services/rag/` | Claude call with native citations, offsets rebased |
-| `app/workers/` | empty; the Arq seam is `pipeline.ingest(doc_id)` |
+| `app/workers/` | Arq worker + enqueue side; falls back to inline ingestion |
 | `../infra/init.sql` | schema source of truth (no Alembic yet) |
 
 ## Things that will bite
@@ -65,11 +70,15 @@ release blocker.
   `embedder.warm_up()` fails at boot rather than letting them drift apart.
 - **Re-embedding.** `chunks.embedding_model` records what produced each vector,
   so a model change can target exactly what is stale.
-- **Ingestion is synchronous.** A large PDF blocks its request. `ingest` takes
-  only a `doc_id` and opens its own session specifically so moving it to Arq is
-  a registration, not a refactor.
-- **No OCR.** A scanned PDF extracts no text and the document lands in `failed`
-  with that message.
+- **Ingestion runs in a worker, or inline if it can't.** `enqueue_ingest`
+  returns `False` and processes the document in-request when Redis is
+  unreachable, so a large PDF blocks that request. The upload response says
+  which path it took. Start a worker with
+  `arq app.workers.arq_app.WorkerSettings`.
+- **OCR is per page, not per document.** A PDF that is half digital and half
+  scanned recovers the scanned pages only. It needs the `tesseract` binary on
+  PATH; without it OCR reports itself unavailable and those pages extract
+  nothing rather than the request failing.
 - **Citations and structured outputs are mutually exclusive** in the API, so
   `/chat` assembles its response shape here rather than asking the model for
   JSON.
