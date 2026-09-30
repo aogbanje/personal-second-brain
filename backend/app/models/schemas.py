@@ -1,7 +1,26 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
+
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    # Length is the only rule enforced. A composition policy (one digit, one
+    # symbol) pushes users toward predictable substitutions without adding real
+    # entropy, so it is left out deliberately.
+    password: str = Field(min_length=12, max_length=1024)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(max_length=1024)
+
+
+class UserResponse(BaseModel):
+    id: UUID
+    email: str
+    workspace_id: UUID
 
 
 class ProgressInfo(BaseModel):

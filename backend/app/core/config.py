@@ -1,5 +1,4 @@
 from functools import lru_cache
-from uuid import UUID
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,7 +20,14 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
 
-    default_workspace_id: UUID = UUID("00000000-0000-0000-0000-000000000001")
+    # Sessions are opaque tokens in an httpOnly cookie. The cookie is the only
+    # transport that works for the SSE progress stream, since EventSource cannot
+    # set an Authorization header.
+    session_cookie_name: str = "psb_session"
+    session_ttl_days: int = 30
+    # Must be True anywhere the frontend is served over HTTPS. False here only
+    # because local dev is http://localhost.
+    cookie_secure: bool = False
 
     upload_dir: str = "uploads"
 

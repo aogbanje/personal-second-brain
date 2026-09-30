@@ -5,6 +5,10 @@ sse-starlette
 
 pydantic
 pydantic-settings
+# EmailStr validation in the auth schemas.
+email-validator
+
+argon2-cffi
 
 sqlalchemy[asyncio]
 asyncpg

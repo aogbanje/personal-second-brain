@@ -39,6 +39,7 @@ def _upload_dir() -> Path:
 
 async def create_document(
     *,
+    workspace_id: UUID,
     title: str,
     source_type: str,
     source_ref: str | None = None,
@@ -46,7 +47,6 @@ async def create_document(
     body_text: str | None = None,
 ) -> UUID:
     """Persist a pending document. Fast: no parsing, no network."""
-    settings = get_settings()
     doc_id = uuid4()
 
     blob_path: str | None = None
@@ -68,7 +68,7 @@ async def create_document(
             ),
             {
                 "id": doc_id,
-                "ws": settings.default_workspace_id,
+                "ws": workspace_id,
                 "title": title,
                 "source_type": source_type,
                 "source_ref": source_ref,
@@ -86,7 +86,11 @@ async def create_document(
 
 async def _materialize(doc_id: UUID, row) -> ParsedDocument:
     """Turn the stored source into text plus page offsets."""
-    source_type, source_ref, blob_path, raw_text, page_spans = row
+    source_type = row.source_type
+    source_ref = row.source_ref
+    blob_path = row.blob_path
+    raw_text = row.raw_text
+    page_spans = row.page_spans
 
     if source_type == "pdf":
         if not blob_path or not Path(blob_path).exists():
@@ -132,7 +136,8 @@ async def ingest(doc_id: UUID) -> None:
             await session.execute(
                 text(
                     """
-                    SELECT source_type, source_ref, blob_path, raw_text, page_spans
+                    SELECT workspace_id, source_type, source_ref, blob_path,
+                           raw_text, page_spans
                     FROM documents WHERE id = :id
                     """
                 ),
@@ -141,6 +146,10 @@ async def ingest(doc_id: UUID) -> None:
         ).first()
     if row is None:
         raise ValueError(f"document {doc_id} not found")
+
+    # The worker has no request context, so the document row is the only
+    # trustworthy source for which workspace this content belongs to.
+    workspace_id = row.workspace_id
 
     try:
         await publish(doc_id, Progress("processing", "parsing", 10))
@@ -212,7 +221,7 @@ async def ingest(doc_id: UUID) -> None:
                         ),
                         {
                             "doc": doc_id,
-                            "ws": settings.default_workspace_id,
+                            "ws": workspace_id,
                             "ordinal": chunk.ordinal,
                             "text": chunk.text,
                             "char_start": chunk.char_start,
@@ -235,7 +244,7 @@ async def ingest(doc_id: UUID) -> None:
             async with SessionLocal() as session:
                 entity_count, edge_count = await persist_graph(
                     session,
-                    workspace_id=settings.default_workspace_id,
+                    workspace_id=workspace_id,
                     document_id=doc_id,
                     chunk_ids=chunk_ids,
                     entities=entities,

@@ -72,6 +72,7 @@ class RetrievedChunk:
 
 async def hybrid_search(
     session: AsyncSession,
+    workspace_id: UUID,
     question: str,
     limit: int | None = None,
 ) -> list[RetrievedChunk]:
@@ -84,7 +85,7 @@ async def hybrid_search(
             {
                 "qvec": vector_literal(vector),
                 "question": question,
-                "ws": settings.default_workspace_id,
+                "ws": workspace_id,
                 "model": settings.embedding_model,
                 "top_k": settings.retrieval_top_k,
                 "limit": limit or settings.retrieval_context_chunks,

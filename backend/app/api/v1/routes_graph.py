@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
+from app.api.deps import Principal, current_user
 from app.db.postgres import get_session
 from app.models.schemas import (
     EntityDetail,
@@ -21,6 +21,7 @@ router = APIRouter(prefix="/graph", tags=["graph"])
 async def get_graph(
     limit: int = Query(150, ge=1, le=1000, description="Max nodes, by degree"),
     document_id: UUID | None = None,
+    principal: Principal = Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ) -> GraphResponse:
     """The graph, or the slice of it a single document contributed.
@@ -28,8 +29,6 @@ async def get_graph(
     Nodes are capped by degree rather than arbitrarily: a graph view that drops
     the hubs is worse than one that drops the leaves.
     """
-    settings = get_settings()
-
     nodes = (
         await session.execute(
             text(
@@ -51,7 +50,7 @@ async def get_graph(
                 LIMIT :limit
                 """
             ),
-            {"ws": settings.default_workspace_id, "doc": document_id, "limit": limit},
+            {"ws": principal.workspace_id, "doc": document_id, "limit": limit},
         )
     ).mappings().all()
 
@@ -76,7 +75,7 @@ async def get_graph(
                 """
             ),
             {
-                "ws": settings.default_workspace_id,
+                "ws": principal.workspace_id,
                 "ids": node_ids,
                 "doc": document_id,
             },
@@ -92,11 +91,10 @@ async def get_graph(
 @router.get("/entities/{entity_id}", response_model=EntityDetail)
 async def get_entity(
     entity_id: UUID,
+    principal: Principal = Depends(current_user),
     session: AsyncSession = Depends(get_session),
 ) -> EntityDetail:
     """One entity plus the passages that justify each of its edges."""
-    settings = get_settings()
-
     entity = (
         await session.execute(
             text(
@@ -105,7 +103,7 @@ async def get_entity(
                 WHERE id = :id AND workspace_id = :ws
                 """
             ),
-            {"id": entity_id, "ws": settings.default_workspace_id},
+            {"id": entity_id, "ws": principal.workspace_id},
         )
     ).mappings().first()
     if entity is None:
@@ -132,7 +130,7 @@ async def get_entity(
                 ORDER BY doc.title NULLS LAST, c.ordinal
                 """
             ),
-            {"id": entity_id, "ws": settings.default_workspace_id},
+            {"id": entity_id, "ws": principal.workspace_id},
         )
     ).mappings().all()
 
