@@ -27,7 +27,12 @@ export function useIngestProgress(
       return;
     }
 
-    const source = new EventSource(eventsUrl(doc.id));
+    // withCredentials is what carries the session cookie. EventSource cannot
+    // set headers at all, which is precisely why the session is a cookie and
+    // not a bearer token.
+    const source = new EventSource(eventsUrl(doc.id), {
+      withCredentials: true,
+    });
 
     source.addEventListener("progress", (event) => {
       const payload = JSON.parse((event as MessageEvent).data) as Progress;

@@ -25,3 +25,5 @@ pytesseract
 pillow
 httpx
 trafilatura
+
+pytest

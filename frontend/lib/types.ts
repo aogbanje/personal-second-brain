@@ -1,3 +1,9 @@
+export type UserResponse = {
+  id: string;
+  email: string;
+  workspace_id: string;
+};
+
 export type DocumentSummary = {
   id: string;
   title: string;

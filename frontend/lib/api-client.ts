@@ -1,8 +1,10 @@
+import { redirectToLogin } from "./auth";
 import type {
   ChatResponse,
   DocumentSummary,
   EntityDetail,
   GraphResponse,
+  UserResponse,
 } from "./types";
 
 export const API_BASE =
@@ -26,6 +28,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         : {}),
       ...init?.headers,
     },
+    // The session is an httpOnly cookie on a different port, so every request
+    // is cross-origin and needs this to carry it. The backend answers with
+    // allow_credentials and an explicit origin.
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -38,6 +44,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       /* non-JSON error body */
     }
+
+    // An expired session should land on the login screen rather than surfacing
+    // as "not signed in" on whatever page happened to be open. Auth routes are
+    // exempt: a failed login has to render its own error, not bounce.
+    if (response.status === 401 && !path.startsWith("/auth/")) {
+      redirectToLogin();
+    }
+
     throw new ApiError(detail, response.status);
   }
 
@@ -45,6 +59,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  signup: (email: string, password: string) =>
+    request<UserResponse>("/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+
+  login: (email: string, password: string) =>
+    request<UserResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
+
+  me: () => request<UserResponse>("/auth/me"),
+
   listDocuments: () => request<DocumentSummary[]>("/documents"),
 
   getDocument: (id: string) => request<DocumentSummary>(`/documents/${id}`),

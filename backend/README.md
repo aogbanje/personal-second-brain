@@ -28,10 +28,18 @@ nothing, but ingestion still succeeds.
 
 ## Try the slice
 
-```bash
-curl -F "file=@some.pdf" localhost:8000/api/v1/documents
+Every content route is scoped to the caller's workspace, so the first step is
+getting a session cookie. `-c/-b` keeps it in a jar; a browser does this for
+you.
 
-curl -s localhost:8000/api/v1/chat \
+```bash
+curl -c jar -s localhost:8000/api/v1/auth/signup \
+  -H 'content-type: application/json' \
+  -d '{"email":"me@example.com","password":"a-long-enough-password"}'
+
+curl -b jar -F "file=@some.pdf" localhost:8000/api/v1/documents
+
+curl -b jar -s localhost:8000/api/v1/chat \
   -H 'content-type: application/json' \
   -d '{"question":"What does the document say about X?"}' | jq
 ```
@@ -56,6 +64,7 @@ release blocker.
 
 | Path | Role |
 |---|---|
+| `app/api/deps.py` | `current_user`: the one place a cookie becomes a workspace |
 | `app/services/ingestion/` | parse → chunk, offsets preserved throughout |
 | `app/services/embeddings/` | local `bge-small-en-v1.5`, no API dependency |
 | `app/services/retrieval/` | vector + full-text fused with RRF, one SQL query |
@@ -65,6 +74,12 @@ release blocker.
 
 ## Things that will bite
 
+- **The session cookie only works because dev is all on localhost.** SameSite
+  ignores the port, so `localhost:3000` → `localhost:8000` counts as same-site
+  and `SameSite=Lax` is enough. Split the API onto its own domain and you need
+  `SameSite=None; Secure`, an explicit `Domain=`, and real CSRF tokens — set
+  `COOKIE_SECURE=true` and treat the Lax assumption in `routes_auth.py` as
+  no longer holding.
 - **Embedding dim is fixed in SQL.** `chunks.embedding` is `vector(384)`.
   Changing `EMBEDDING_MODEL` to one with a different width needs a migration;
   `embedder.warm_up()` fails at boot rather than letting them drift apart.
