@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-neutral-950 text-neutral-200 antialiased;
+}
+
+/* Citation highlight target. Deliberately loud -- the whole point is that you
+   can find the cited passage in a wall of text without hunting. */
+mark.psb-highlight {
+  @apply bg-amber-400/25 text-amber-100 rounded-sm px-0.5;
+  box-shadow: 0 0 0 1px rgb(251 191 36 / 0.35);
+}
+
+/* Matched terms inside a search snippet. Quieter than psb-highlight on purpose:
+   there is one of those per document and a dozen of these per result list, so
+   the ring that helps you find a citation just makes a result page rattle. */
+mark.psb-match {
+  @apply bg-amber-400/15 text-amber-200 rounded-sm;
+}

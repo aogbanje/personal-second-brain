@@ -7,7 +7,6 @@ An app that takes messy, scattered inputs - PDFs, web links, maybe raw text - an
 Stack: **Python** (backend/AI/data pipeline) + **Next.js** (frontend/UX).
 
 ---
-
 ## Core Feature Set (the MVP backbone)
 
 - Multi-source ingestion: PDF upload, URL scraping, plain text/.docx
