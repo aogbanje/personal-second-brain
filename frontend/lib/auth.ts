@@ -21,6 +21,28 @@ export function isPublicPath(pathname: string): boolean {
 }
 
 /**
+ * Validate a `?next=` value before navigating to it.
+ *
+ * `next` arrives in the URL, so it is attacker-controlled: a login link can be
+ * crafted with any value and the victim lands wherever it points *after*
+ * authenticating. A bare `startsWith("/")` is not enough -- `//evil.com` is a
+ * protocol-relative URL, and browsers normalise the backslash in `/\evil.com`
+ * to the same thing. Both leave the site.
+ *
+ * Returns the path only when it is unambiguously in-app, else the fallback.
+ */
+export function safeNextPath(
+  next: string | null,
+  fallback = "/dashboard",
+): string {
+  if (!next) return fallback;
+  if (!next.startsWith("/")) return fallback;
+  // Rejects "//host" and "/\host" -- the two spellings of "leave this origin".
+  if (next.startsWith("//") || next.startsWith("/\\")) return fallback;
+  return next;
+}
+
+/**
  * Bounce to login, preserving where the user was headed.
  *
  * Uses a hard assignment rather than the router because this is called from

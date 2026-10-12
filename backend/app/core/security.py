@@ -30,7 +30,7 @@ async def hash_password(password: str) -> str:
 
 
 async def verify_password(password: str, stored_hash: str | None) -> bool:
-    """Check a password. Passing None still burns the same work on purpose."""
+    """Check a password. A missing hash still burns the same work on purpose."""
     target = stored_hash or _DUMMY_HASH
 
     def _verify() -> bool:
@@ -43,7 +43,11 @@ async def verify_password(password: str, stored_hash: str | None) -> bool:
             return False
 
     ok = await run_in_threadpool(_verify)
-    return ok and stored_hash is not None
+    # `bool(stored_hash)`, not `is not None`, so this agrees with the `or` above
+    # on what counts as missing. If they disagreed, a row with an empty
+    # password_hash would fall through to _DUMMY_HASH and then be accepted --
+    # handing the account to anyone who sends the dummy's plaintext.
+    return ok and bool(stored_hash)
 
 
 def needs_rehash(stored_hash: str) -> bool:

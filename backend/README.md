@@ -42,12 +42,21 @@ curl -b jar -F "file=@some.pdf" localhost:8000/api/v1/documents
 curl -b jar -s localhost:8000/api/v1/chat \
   -H 'content-type: application/json' \
   -d '{"question":"What does the document say about X?"}' | jq
+
+# Retrieval without generation: where did I read that?
+curl -b jar -s 'localhost:8000/api/v1/search?q=some%20phrase' | jq
 ```
 
 `/chat` returns the answer split into `segments`. Each segment carries the
 citations for that span, and every citation's `char_start`/`char_end` are
 offsets into `GET /documents/{id}/text` — so the frontend can highlight the
 exact passage in the source rather than string-matching for it.
+
+`/search` runs the same `hybrid_search` the chat path uses, without the model
+call, so its ranking is exactly the context chat would have been handed — which
+makes it the way to see *why* chat cited what it cited. Each hit carries a
+`snippet` with matched terms wrapped in `\x02`/`\x03`, not `<mark>` tags: see
+`services/retrieval/snippets.py` for why the highlighted excerpt is never HTML.
 
 ## Tests
 
@@ -67,7 +76,7 @@ release blocker.
 | `app/api/deps.py` | `current_user`: the one place a cookie becomes a workspace |
 | `app/services/ingestion/` | parse → chunk, offsets preserved throughout |
 | `app/services/embeddings/` | local `bge-small-en-v1.5`, no API dependency |
-| `app/services/retrieval/` | vector + full-text fused with RRF, one SQL query |
+| `app/services/retrieval/` | vector + full-text fused with RRF, one SQL query; `snippets.py` adds `ts_headline` excerpts for `/search` |
 | `app/services/rag/` | Claude call with native citations, offsets rebased |
 | `app/workers/` | Arq worker + enqueue side; falls back to inline ingestion |
 | `../infra/init.sql` | schema source of truth (no Alembic yet) |

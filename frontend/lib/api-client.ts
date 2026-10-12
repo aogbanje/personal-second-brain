@@ -4,6 +4,7 @@ import type {
   DocumentSummary,
   EntityDetail,
   GraphResponse,
+  SearchResponse,
   UserResponse,
 } from "./types";
 
@@ -105,6 +106,11 @@ export const api = {
 
   deleteDocument: (id: string) =>
     request<void>(`/documents/${id}`, { method: "DELETE" }),
+
+  search: (query: string, limit?: number) =>
+    request<SearchResponse>(
+      `/search?q=${encodeURIComponent(query)}${limit ? `&limit=${limit}` : ""}`,
+    ),
 
   ask: (question: string) =>
     request<ChatResponse>("/chat", {

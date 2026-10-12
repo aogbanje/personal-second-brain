@@ -4,7 +4,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import routes_auth, routes_chat, routes_documents, routes_graph
+from app.api.v1 import (
+    routes_auth,
+    routes_chat,
+    routes_documents,
+    routes_graph,
+    routes_search,
+)
 from app.services.embeddings.embedder import warm_up
 from app.workers.queue import close_pool
 
@@ -35,6 +41,7 @@ app.add_middleware(
 
 app.include_router(routes_auth.router, prefix="/api/v1")
 app.include_router(routes_documents.router, prefix="/api/v1")
+app.include_router(routes_search.router, prefix="/api/v1")
 app.include_router(routes_chat.router, prefix="/api/v1")
 app.include_router(routes_graph.router, prefix="/api/v1")
 

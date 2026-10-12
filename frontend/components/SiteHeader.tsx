@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { useSession } from "@/hooks/useSession";
@@ -10,6 +10,7 @@ import { LOGIN_PATH, isPublicPath } from "@/lib/auth";
 
 const NAV = [
   { href: "/dashboard", label: "Library" },
+  { href: "/search", label: "Search" },
   { href: "/chat", label: "Chat" },
   { href: "/graph", label: "Graph" },
 ];
@@ -24,21 +25,24 @@ const NAV = [
  */
 export function SiteHeader() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user } = useSession();
+  const isAuthScreen = isPublicPath(pathname);
+  // Skipped on the auth screens, where /auth/me is a guaranteed 401.
+  const { user } = useSession({ enabled: !isAuthScreen });
   const [busy, setBusy] = useState(false);
 
-  if (isPublicPath(pathname)) return null;
+  if (isAuthScreen) return null;
 
   async function signOut() {
     setBusy(true);
     try {
       await api.logout();
-      // replace, not push: the back button should not return to a page that is
-      // about to bounce off the middleware.
-      router.replace(LOGIN_PATH);
     } finally {
-      setBusy(false);
+      // A hard assignment, matching sign-in: this component lives in the root
+      // layout, so a client-side navigation would keep the now-revoked `user`
+      // in state. Not in a `then` either -- if logout fails the cookie may
+      // still be gone server-side, and leaving someone on a half-signed-out
+      // shell is worse than sending them to a login page they can retry from.
+      window.location.assign(LOGIN_PATH);
     }
   }
 

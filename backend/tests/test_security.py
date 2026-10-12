@@ -25,6 +25,10 @@ from app.core.security import (
 
 PASSWORD = "a-sufficiently-long-password"
 
+# The plaintext `security._DUMMY_HASH` is built from. Duplicated here on purpose
+# -- see test_the_dummy_hashes_own_plaintext_does_not_authenticate.
+DUMMY_PLAINTEXT = "password-for-a-user-that-does-not-exist"
+
 
 def _run(coro):
     return asyncio.run(coro)
@@ -56,20 +60,22 @@ def test_missing_hash_is_rejected():
 def test_the_dummy_hashes_own_plaintext_does_not_authenticate():
     """The sharp edge of verifying against a dummy hash.
 
-    `verify_password(pw, None)` compares against a module-level hash so the
+    `verify_password(pw, <missing>)` compares against a module-level hash so the
     unknown-email path costs the same as a wrong password. That makes the
     dummy's plaintext a password that genuinely matches what was compared --
-    only the explicit `stored_hash is not None` guard stops it from logging
-    someone in as an account that does not exist.
+    only the explicit falsiness guard stops it from signing someone in as an
+    account that does not exist.
     """
-    # Recover the plaintext the real dummy hash was built from, so this test
-    # fails if that constant is rebuilt from something else.
-    assert _run(verify_password("password-for-a-user-that-does-not-exist", None)) is (
-        False
-    )
-    assert security._hasher.verify(
-        security._DUMMY_HASH, "password-for-a-user-that-does-not-exist"
-    )
+    # Asserted first: if the dummy is ever rebuilt from a different plaintext
+    # this fails loudly, rather than leaving the checks below passing for the
+    # trivial reason that nothing matches any more.
+    assert security._hasher.verify(security._DUMMY_HASH, DUMMY_PLAINTEXT)
+
+    assert _run(verify_password(DUMMY_PLAINTEXT, None)) is False
+    # The empty string too: `stored_hash or _DUMMY_HASH` treats it as missing,
+    # so the guard has to agree. A guard written as `is not None` would accept
+    # this and hand over any account whose password_hash row was blanked.
+    assert _run(verify_password(DUMMY_PLAINTEXT, "")) is False
 
 
 @pytest.mark.parametrize("corrupt", ["", "not-a-hash", "$argon2id$v=19$truncated"])

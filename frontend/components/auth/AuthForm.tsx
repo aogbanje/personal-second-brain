@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { api } from "@/lib/api-client";
+import { safeNextPath } from "@/lib/auth";
 
 type Mode = "login" | "signup";
 
@@ -33,7 +34,6 @@ const COPY: Record<
 const MIN_PASSWORD = 12;
 
 export function AuthForm({ mode }: { mode: Mode }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const copy = COPY[mode];
 
@@ -57,9 +57,16 @@ export function AuthForm({ mode }: { mode: Mode }) {
         await api.login(email.trim(), password);
       }
       // Honour where the middleware bounced them from, but only for in-app
-      // paths -- an absolute URL here would be an open redirect.
-      const next = searchParams.get("next");
-      router.replace(next?.startsWith("/") ? next : "/dashboard");
+      // paths -- `next` is attacker-controlled, so safeNextPath owns that call.
+      const target = safeNextPath(searchParams.get("next"));
+
+      // A full document load, not router.replace. SiteHeader sits in the root
+      // layout, so a client-side navigation leaves it mounted with the
+      // `user: null` its useSession already resolved to on this page -- you
+      // would land on the dashboard with no email and no sign-out button. The
+      // session cookie is new as of a moment ago, so reloading the shell is
+      // also the honest thing to do.
+      window.location.assign(target);
     } catch (err) {
       setError(err instanceof Error ? err.message : `${copy.action} failed`);
       setBusy(false);

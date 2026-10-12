@@ -93,6 +93,31 @@ class ChatResponse(BaseModel):
     retrieved_chunk_ids: list[UUID]
 
 
+class SearchHit(BaseModel):
+    """One retrieved chunk, ranked but not summarised.
+
+    Same char offsets as `Citation`, so a hit links into the document viewer and
+    highlights in place exactly as a chat citation does.
+    """
+
+    chunk_id: UUID
+    document_id: UUID
+    document_title: str
+    page_number: int | None
+    text: str
+    # Matched terms wrapped in the sentinels from `retrieval.snippets`. Not HTML
+    # on purpose -- see that module for why.
+    snippet: str
+    char_start: int
+    char_end: int
+    score: float
+
+
+class SearchResponse(BaseModel):
+    query: str
+    results: list[SearchHit]
+
+
 class GraphNode(BaseModel):
     id: UUID
     name: str

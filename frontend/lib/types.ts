@@ -4,6 +4,28 @@ export type UserResponse = {
   workspace_id: string;
 };
 
+export type SearchHit = {
+  chunk_id: string;
+  document_id: string;
+  document_title: string;
+  page_number: number | null;
+  text: string;
+  /**
+   * Excerpt with matched terms wrapped in MARK_START/MARK_END from
+   * `lib/snippet.ts`. Deliberately not HTML -- the backend's
+   * `retrieval/snippets.py` explains why.
+   */
+  snippet: string;
+  char_start: number;
+  char_end: number;
+  score: number;
+};
+
+export type SearchResponse = {
+  query: string;
+  results: SearchHit[];
+};
+
 export type DocumentSummary = {
   id: string;
   title: string;
